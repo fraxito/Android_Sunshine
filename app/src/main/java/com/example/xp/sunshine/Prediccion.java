@@ -35,6 +35,7 @@ import java.util.Arrays;
  */
 public class Prediccion extends Fragment {
 
+    private ArrayAdapter<String> prediccionAdapter;
 
     public Prediccion() {
         // Required empty public constructor
@@ -52,7 +53,7 @@ public class Prediccion extends Fragment {
     @Override
     public void onStart(){
         super.onStart();
-/*        String [] datos = {
+        String [] datos = {
                 "Lun   25/04  - Soleado  - 24º/12º",
                 "Mar   26/04  - Soleado  - 24º/12º",
                 "Mie   27/04  - Soleado  - 24º/12º",
@@ -60,11 +61,12 @@ public class Prediccion extends Fragment {
                 "Vie   29/04  - Soleado  - 24º/12º",
                 "Sab   30/04  - Soleado  - 24º/12º",
                 "Dom   01/05  - Soleado  - 24º/12º"
-        };*/
+        };
 
 
-
-        String [] datos = cargaJson();
+        ObtenJson j = new ObtenJson();
+        j.execute();
+       // String [] datos = j.doInBackground();
 
 
         ListView listaVista ;
@@ -75,12 +77,12 @@ public class Prediccion extends Fragment {
         // Este es el array adapter, necesita el activity como primer parámetro
         // , el tipo de listView como segundo parámetro y el array de datos
         // como tercer parámetro.
-        ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(
+        prediccionAdapter = new ArrayAdapter<String>(
                 this.getActivity(),
                 android.R.layout.simple_list_item_1,
                 listadoPredicciones );
 
-        listaVista.setAdapter(arrayAdapter);
+        listaVista.setAdapter(prediccionAdapter);
 
 
     }
@@ -89,106 +91,121 @@ public class Prediccion extends Fragment {
 
 
 
-    private String[] getClimaDesdeJson (String prediccionJson) throws JSONException{
+    class ObtenJson extends AsyncTask<String, Void, String[]> {
 
-        //por cada campo a extraer del Json declaro un String
+        private Exception exception;
+        @Override
+        protected String[] doInBackground(String... params) {
 
-        final String temperatura = "temp";
-        final String maxima = "temp_max";
-        final String minima = "temp_min";
-        final String lista  = "list";
+            //hago una petición de datos al API de OpenWeatherMap
+            //me va a responder con un JSON con los datos
+            HttpURLConnection direccionURL = null;
+            BufferedReader lector = null;
+            String prediccionJSON = "";
+            try {
+                String cadenaConexion = "http://api.openweathermap.org/data/2.5/forecast?q=Madrid,es&mode=json&appid=246af0c89d66b8f64a2772be17de73b8";
+                URL url = new URL(cadenaConexion);
 
-        JSONObject miJson = new JSONObject(prediccionJson);
-        JSONArray arrayDatosClima = miJson.getJSONArray(lista);
+                direccionURL = (HttpURLConnection) url.openConnection();
+                direccionURL.setRequestMethod("GET");
+                direccionURL.connect();
 
+                //leo el json que recibo de openweathermap y lo guardo en un StringBuffer
+                InputStream entradaDatos = direccionURL.getInputStream();
+                StringBuffer buffer = new StringBuffer();
+                if (entradaDatos == null) {
+                    //no hay datos que leer
+                    return null;
+                }
 
-        Time hoy = new Time();
-        hoy.setToNow();
+                lector = new BufferedReader(new InputStreamReader(entradaDatos));
 
-        //necesito saber el dia de hoy en formato "humano"
+                String linea;
+                while ((linea = lector.readLine()) != null) {
+                    buffer.append(linea + "\n");
 
-        int diaInicioJuliano = Time.getJulianDay(System.currentTimeMillis(), hoy.gmtoff);
-
-        hoy = new Time();
-
-        // 5 son los dias que puedo leer con la API gratuita
-        String[] auxiliar = new String [6];
-
-        String dia = "";
-        String descripcion = "";
-        String maxmin = "";
-
-        for (int i=0; i < 6; i++){
-            //vamos a usar el formato para la fila: DIA - DESCRIPCION - MAX/MIN
-            JSONObject prediccionDiaria = arrayDatosClima.getJSONObject(i);
-            long fechaHora = hoy.setJulianDay(diaInicioJuliano + i);
-
-            SimpleDateFormat fechaFormateada = new SimpleDateFormat("EEE MMM dd");
-            dia = fechaFormateada.format(fechaHora);
+                }
+                prediccionJSON = buffer.toString();
 
 
-            auxiliar[i] = dia;
-            Log.v("miapp", dia);
+            } catch (Exception e) {
+                Log.v("miapp", "NOOOOOO");
+            } finally {
+                if (direccionURL != null) {
+                    direccionURL.disconnect();
+                }
+            }
+
+            try {
+                return getClimaDesdeJson(prediccionJSON);
+            } catch (JSONException e) {
+
+            }
+
+            return null;
+
         }
 
-        return auxiliar;
 
 
+        private String[] getClimaDesdeJson (String prediccionJson) throws JSONException{
+
+            //por cada campo a extraer del Json declaro un String
+
+            final String temperatura = "temp";
+            final String maxima = "temp_max";
+            final String minima = "temp_min";
+            final String lista  = "list";
+
+            JSONObject miJson = new JSONObject(prediccionJson);
+            JSONArray arrayDatosClima = miJson.getJSONArray(lista);
+
+
+            Time hoy = new Time();
+            hoy.setToNow();
+
+            //necesito saber el dia de hoy en formato "humano"
+
+            int diaInicioJuliano = Time.getJulianDay(System.currentTimeMillis(), hoy.gmtoff);
+
+            hoy = new Time();
+
+            // 5 son los dias que puedo leer con la API gratuita
+            String[] auxiliar = new String [6];
+
+            String dia = "";
+            String descripcion = "";
+            String maxmin = "";
+
+            for (int i=0; i < 6; i++){
+                //vamos a usar el formato para la fila: DIA - DESCRIPCION - MAX/MIN
+                JSONObject prediccionDiaria = arrayDatosClima.getJSONObject(i);
+                long fechaHora = hoy.setJulianDay(diaInicioJuliano + i);
+
+                SimpleDateFormat fechaFormateada = new SimpleDateFormat("EEE MMM dd");
+                dia = fechaFormateada.format(fechaHora);
+
+
+                auxiliar[i] = dia;
+                Log.v("miapp", dia);
+            }
+
+            return auxiliar;
+
+
+        }
+
+        @Override
+        	        protected void onPostExecute(String[] result) {
+            	            if (result != null) {
+                                prediccionAdapter.clear();
+                	                for(String dayForecastStr : result) {
+                                        prediccionAdapter.add(dayForecastStr);
+                    	                }
+                	                // New data is back from the server.  Hooray!
+                	            }
+            	        }
     }
 
-
-
-
-    protected String[] cargaJson(){
-
-        //hago una petición de datos al API de OpenWeatherMap
-        //me va a responder con un JSON con los datos
-        HttpURLConnection direccionURL = null;
-        BufferedReader lector = null;
-        String prediccionJSON = "";
-        try{
-            String cadenaConexion = "http://api.openweathermap.org/data/2.5/forecast?q=Madrid,es&mode=json&appid=246af0c89d66b8f64a2772be17de73b8";
-            URL url = new URL(cadenaConexion);
-
-            direccionURL = (HttpURLConnection) url.openConnection();
-            direccionURL.setRequestMethod("GET");
-            direccionURL.connect();
-
-            //leo el json que recibo de openweathermap y lo guardo en un StringBuffer
-            InputStream entradaDatos = direccionURL.getInputStream();
-            StringBuffer buffer = new StringBuffer();
-            if (entradaDatos == null){
-                //no hay datos que leer
-                return null;
-            }
-
-            lector = new BufferedReader(new InputStreamReader(entradaDatos));
-
-            String linea;
-            while ((linea = lector.readLine()) != null){
-                buffer.append(linea + "\n");
-
-            }
-            prediccionJSON = buffer.toString();
-
-
-        }
-        catch (IOException e){
-
-        }
-        finally {
-            if (direccionURL != null){
-                direccionURL.disconnect();
-            }
-        }
-
-        try{
-            return getClimaDesdeJson(prediccionJSON);
-        }catch (JSONException e){
-
-        }
-
-        return null;
-
-    }
 }
+
