@@ -45,6 +45,8 @@ public class Prediccion extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        ObtenJson j = new ObtenJson();
+        j.execute();
         // Inflate the layout for this fragment
         return inflater.inflate(R.layout.fragment_prediccion, container, false);
     }
@@ -64,8 +66,7 @@ public class Prediccion extends Fragment {
         };
 
 
-        ObtenJson j = new ObtenJson();
-        j.execute();
+
        // String [] datos = j.doInBackground();
 
 
@@ -128,7 +129,7 @@ public class Prediccion extends Fragment {
                 prediccionJSON = buffer.toString();
 
 
-            } catch (Exception e) {
+            } catch (IOException e) {
                 Log.v("miapp", "NOOOOOO");
             } finally {
                 if (direccionURL != null) {
@@ -137,9 +138,10 @@ public class Prediccion extends Fragment {
             }
 
             try {
+                Log.v("miapp", "SIIII");
                 return getClimaDesdeJson(prediccionJSON);
             } catch (JSONException e) {
-
+                Log.v("miapp", e.toString());
             }
 
             return null;
@@ -152,10 +154,11 @@ public class Prediccion extends Fragment {
 
             //por cada campo a extraer del Json declaro un String
 
-            final String temperatura = "temp";
+            final String temperatura = "main";
             final String maxima = "temp_max";
             final String minima = "temp_min";
             final String lista  = "list";
+            final String tiempo = "weather";
 
             JSONObject miJson = new JSONObject(prediccionJson);
             JSONArray arrayDatosClima = miJson.getJSONArray(lista);
@@ -186,8 +189,21 @@ public class Prediccion extends Fragment {
                 dia = fechaFormateada.format(fechaHora);
 
 
-                auxiliar[i] = dia;
-                Log.v("miapp", dia);
+
+                // description is in a child array called "weather", which is 1 element long.
+                JSONObject weatherObject = prediccionDiaria.getJSONArray(tiempo).getJSONObject(0);
+                descripcion = weatherObject.getString("description");
+
+                // Temperatures are in a child object called "temp".  Try not to name variables
+                // "temp" when working with temperature.  It confuses everybody.
+                JSONObject temperatureObject = prediccionDiaria.getJSONObject(temperatura);
+                double high = temperatureObject.getDouble(maxima);
+                double low = temperatureObject.getDouble(minima);
+
+                maxmin = Math.round(high) + " / " + Math.round(low);
+
+                auxiliar[i] = dia + " - " + descripcion + " - " + maxmin;
+                Log.v("miapp",  auxiliar[i]);
             }
 
             return auxiliar;
