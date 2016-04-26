@@ -28,6 +28,7 @@ import java.net.URL;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Locale;
 
 
 /**
@@ -104,7 +105,7 @@ public class Prediccion extends Fragment {
             BufferedReader lector = null;
             String prediccionJSON = "";
             try {
-                String cadenaConexion = "http://api.openweathermap.org/data/2.5/forecast?q=Madrid,es&mode=json&appid=246af0c89d66b8f64a2772be17de73b8";
+                String cadenaConexion = "http://api.openweathermap.org/data/2.5/forecast?q=Madrid,es&mode=json&units=metric&lang=es&appid=246af0c89d66b8f64a2772be17de73b8";
                 URL url = new URL(cadenaConexion);
 
                 direccionURL = (HttpURLConnection) url.openConnection();
@@ -185,7 +186,7 @@ public class Prediccion extends Fragment {
                 JSONObject prediccionDiaria = arrayDatosClima.getJSONObject(i);
                 long fechaHora = hoy.setJulianDay(diaInicioJuliano + i);
 
-                SimpleDateFormat fechaFormateada = new SimpleDateFormat("EEE MMM dd");
+                SimpleDateFormat fechaFormateada = new SimpleDateFormat("EE MMM dd", new Locale("es", "ES"));
                 dia = fechaFormateada.format(fechaHora);
 
 
