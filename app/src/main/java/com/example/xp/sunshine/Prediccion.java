@@ -11,6 +11,12 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -60,6 +66,49 @@ public class Prediccion extends Fragment {
                 listadoPredicciones );
 
         listaVista.setAdapter(arrayAdapter);
+
+
+        //hago una petición de datos al API de OpenWeatherMap
+        //me va a responder con un JSON con los datos
+        HttpURLConnection direccionURL = null;
+        BufferedReader lector = null;
+        String prediccionJSON = null;
+        try{
+            String cadenaConexion = "http://api.openweathermap.org/data/2.5/forecast?q=Madrid,es&mode=json&appid=246af0c89d66b8f64a2772be17de73b8";
+            URL url = new URL(cadenaConexion);
+
+            direccionURL = (HttpURLConnection) url.openConnection();
+            direccionURL.setRequestMethod("GET");
+            direccionURL.connect();
+
+            //leo el json que recibo de openweathermap y lo guardo en un StringBuffer
+            InputStream entradaDatos = direccionURL.getInputStream();
+            StringBuffer buffer = new StringBuffer();
+            if (entradaDatos == null){
+                //no hay datos que leer
+                return;
+            }
+
+            lector = new BufferedReader(new InputStreamReader(entradaDatos));
+
+            String linea;
+            while ((linea = lector.readLine()) != null){
+                buffer.append(linea + "\n");
+            }
+            prediccionJSON = buffer.toString();
+
+
+        }
+        catch (IOException e){
+
+        }
+        finally {
+            if (direccionURL != null){
+                direccionURL.disconnect();
+            }
+        }
+
+
 
     }
 
