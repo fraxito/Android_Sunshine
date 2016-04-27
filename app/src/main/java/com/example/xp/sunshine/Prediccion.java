@@ -6,7 +6,7 @@ import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 
-import android.text.format.Time;
+
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -52,28 +52,16 @@ public class Prediccion extends Fragment {
         return inflater.inflate(R.layout.fragment_prediccion, container, false);
     }
 
-
     @Override
     public void onStart(){
         super.onStart();
         String [] datos = {
-                "Lun   25/04  - Soleado  - 24º/12º",
-                "Mar   26/04  - Soleado  - 24º/12º",
-                "Mie   27/04  - Soleado  - 24º/12º",
-                "Jue   28/04  - Soleado  - 24º/12º",
-                "Vie   29/04  - Soleado  - 24º/12º",
-                "Sab   30/04  - Soleado  - 24º/12º",
-                "Dom   01/05  - Soleado  - 24º/12º"
+                "espere mientras se actualizan los datos"
+
         };
-
-
-
-       // String [] datos = j.doInBackground();
-
 
         ListView listaVista ;
         ArrayList<String> listadoPredicciones = new ArrayList <String>(Arrays.asList(datos));
-
 
         listaVista = (ListView) getActivity().findViewById(R.id.listadoPredicciones);
         // Este es el array adapter, necesita el activity como primer parámetro
@@ -86,8 +74,9 @@ public class Prediccion extends Fragment {
 
         listaVista.setAdapter(prediccionAdapter);
 
-
     }
+
+
 
 
 
@@ -153,57 +142,38 @@ public class Prediccion extends Fragment {
 
         private String[] getClimaDesdeJson (String prediccionJson) throws JSONException{
 
-            //por cada campo a extraer del Json declaro un String
-
-            final String temperatura = "main";
-            final String maxima = "temp_max";
-            final String minima = "temp_min";
-            final String lista  = "list";
-            final String tiempo = "weather";
-
             JSONObject miJson = new JSONObject(prediccionJson);
-            JSONArray arrayDatosClima = miJson.getJSONArray(lista);
-
-
-            Time hoy = new Time();
-            hoy.setToNow();
-
-            //necesito saber el dia de hoy en formato "humano"
-
-            int diaInicioJuliano = Time.getJulianDay(System.currentTimeMillis(), hoy.gmtoff);
-
-            hoy = new Time();
+            JSONArray arrayDatosClima = miJson.getJSONArray("list");
 
             // 5 son los dias que puedo leer con la API gratuita
-            String[] auxiliar = new String [6];
+            String[] auxiliar = new String [5];
 
             String dia = "";
             String descripcion = "";
             String maxmin = "";
-
-            for (int i=0; i < 6; i++){
+            long fechaHora;
+            SimpleDateFormat fechaFormateada = new SimpleDateFormat("dd.MM.yyyy", new Locale("es", "ES"));
+            for (int i=0; i < 5; i++){
                 //vamos a usar el formato para la fila: DIA - DESCRIPCION - MAX/MIN
-                JSONObject prediccionDiaria = arrayDatosClima.getJSONObject(i);
-                long fechaHora = hoy.setJulianDay(diaInicioJuliano + i);
+                JSONObject prediccionDiaria = arrayDatosClima.getJSONObject(i*6 +1);
 
-                SimpleDateFormat fechaFormateada = new SimpleDateFormat("EE MMM dd", new Locale("es", "ES"));
+                fechaHora = prediccionDiaria.getLong("dt")*1000;
                 dia = fechaFormateada.format(fechaHora);
 
-
-
                 // description is in a child array called "weather", which is 1 element long.
-                JSONObject weatherObject = prediccionDiaria.getJSONArray(tiempo).getJSONObject(0);
+                JSONObject weatherObject = prediccionDiaria.getJSONArray("weather").getJSONObject(0);
                 descripcion = weatherObject.getString("description");
 
                 // Temperatures are in a child object called "temp".  Try not to name variables
                 // "temp" when working with temperature.  It confuses everybody.
-                JSONObject temperatureObject = prediccionDiaria.getJSONObject(temperatura);
-                double high = temperatureObject.getDouble(maxima);
-                double low = temperatureObject.getDouble(minima);
+                JSONObject temperatureObject = prediccionDiaria.getJSONObject("main");
+                double high = temperatureObject.getDouble("temp_max");
+                double low = temperatureObject.getDouble("temp_min");
+                double presion = temperatureObject.getDouble("pressure");
 
                 maxmin = Math.round(high) + " / " + Math.round(low);
 
-                auxiliar[i] = dia + " - " + descripcion + " - " + maxmin;
+                auxiliar[i] = dia + "-" + descripcion + "-" + maxmin + "/" + presion;
                 Log.v("miapp",  auxiliar[i]);
             }
 
@@ -214,7 +184,7 @@ public class Prediccion extends Fragment {
 
         @Override
         	        protected void onPostExecute(String[] result) {
-            	            if (result != null) {
+            	            if (result != null && prediccionAdapter!= null) {
                                 prediccionAdapter.clear();
                 	                for(String dayForecastStr : result) {
                                         prediccionAdapter.add(dayForecastStr);
